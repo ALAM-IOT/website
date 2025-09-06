@@ -1,195 +1,289 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ALAM IOT </title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ALAM IOT - Plant Monitor</title>
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
-    body { font-family: 'Segoe UI', sans-serif; margin:0; background:#f0f2f5; }
-    header { background:#4CAF50; color:white; padding:20px; text-align:center; display:flex; align-items:center; justify-content:center; gap:15px; }
-    header img { 
-      height:80px;   /* default lebih besar dari 50px */
-      width:auto; 
-      border-radius:0%; 
-      transition: all 0.3s ease; 
+    :root {
+      --brand:#16a34a;
+      --brand-light:#22c55e;
+      --bg:#f9fafb;
+      --card:#ffffff;
+      --text:#1f2937;
     }
-    header img:hover {
-      transform: scale(1.1); /* efek zoom saat hover */
+    body {
+      font-family:'Poppins',system-ui,Arial;
+      margin:0;
+      background:var(--bg);
+      color:var(--text);
     }
-    h1 { margin:0; font-size:24px; }
-    p { margin:0; font-size:14px; }
-    .grid { display:grid; gap:20px; padding:20px; }
-    .grid-2 { grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+    header {
+      background:linear-gradient(90deg,var(--brand),var(--brand-light));
+      color:#fff;
+      padding:14px 20px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      box-shadow:0 4px 15px rgba(0,0,0,.15);
+    }
+    header .left {
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+    header img {
+      height:40px;
+      width:40px;
+      border-radius:10px;
+      background:#fff;
+      padding:4px;
+      box-shadow:0 2px 5px rgba(0,0,0,.2);
+    }
+    header h1,h2 {
+      margin:0;
+      font-size:20px;
+      font-weight:700;
+    }
+    .wrap {max-width:1200px;margin:22px auto;padding:0 16px}
+    .grid {
+      display:grid;
+      gap:16px;
+      grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+    }
     .card {
-      background:white; border-radius:12px; padding:20px;
-      box-shadow:0 4px 10px rgba(0,0,0,0.1); transition:transform .2s;
+      background:var(--card);
+      padding:16px;
+      border-radius:16px;
+      box-shadow:0 6px 18px rgba(0,0,0,.08);
+      transition:transform .2s, box-shadow .2s;
+      background:linear-gradient(180deg,#ffffff,#f3f4f6);
     }
-    .card:hover { transform:translateY(-3px); }
-    .sensor { font-size:14px; color:#666; }
-    .value { font-size:24px; font-weight:bold; color:#4CAF50; margin:5px 0; }
-    .pump-controls button {
-      padding:10px 15px; margin:5px; border:none; border-radius:6px; cursor:pointer; color:white; font-weight:bold;
+    .card:hover {transform:translateY(-4px);box-shadow:0 10px 22px rgba(0,0,0,.12)}
+    .label {font-size:13px;color:#666;font-weight:500}
+    .value {font-size:22px;font-weight:700;color:var(--brand);margin:6px 0 12px}
+    .small {font-size:13px;color:#444}
+    .mono {font-family:ui-monospace,Menlo,Consolas,monospace}
+    .status {display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px}
+    .badge {
+      padding:6px 12px;
+      border-radius:999px;
+      font-size:13px;
+      font-weight:600;
     }
-    .manual { background:green; }
-    .auto { background:blue; }
-    .timer { background:orange; }
-    footer { background:#ddd; padding:10px; text-align:center; margin-top:20px; }
-    .active { opacity:1; }
-    .inactive { opacity:0.6; }
+    .ok{background:#dcfce7;color:#166534}
+    .warn{background:#fee2e2;color:#991b1b}
+    .info{background:#dbeafe;color:#1e40af}
+    .controls button {
+      padding:10px 14px;
+      border-radius:10px;
+      border:0;
+      font-weight:600;
+      cursor:pointer;
+      margin-right:8px;
+      transition:all .2s;
+    }
+    .controls button:hover {transform:scale(1.05)}
+    .on{background:#16a34a;color:#fff}
+    .off{background:#ef4444;color:#fff}
+    .auto{background:#2563eb;color:#fff}
+    footer {
+      padding:18px;
+      text-align:center;
+      color:#777;
+      font-size:13px;
+      margin-top:30px;
+      border-top:1px solid #e5e7eb;
+    }
   </style>
 </head>
 <body>
   <header>
-    <!-- Logo bisa diperbesar -->
-    <img src="Logo.png" alt="Logo">
-    <div>
-      <h1>🌱 ALAM (Automated Live Agriculture Monitor)</h1>
-      <p>MAN 1 MEDAN TEAM</p>
+    <div class="left">
+      <img src="logo.png" alt="Logo">
+      <h2> ALAM IOT </h2>
     </div>
+    <!-- clientId disembunyikan -->
   </header>
 
-  <!-- Data Lingkungan -->
-  <div class="grid grid-2">
-    <div class="card">
-      <h2>Data Lingkungan</h2>
-      <div class="sensor">Suhu Udara: <div class="value" id="airTemp">-- °C</div></div>
-      <div class="sensor">Kelembapan Udara: <div class="value" id="airHum">-- %</div></div>
-      <div class="sensor">pH Tanah: <div class="value" id="ph">--</div></div>
-      <div class="sensor">Cahaya: <div class="value" id="lux">-- lux</div></div>
-      <div class="sensor">CO₂: <div class="value" id="co2">-- ppm</div></div>
+  <div class="wrap">
+    <div class="card status">
+      <div id="connBadge" class="badge warn">MQTT: DISCONNECTED</div>
+      <div id="pumpBadge" class="badge warn">POMPA: --</div>
+      <div id="modeBadge" class="badge info">MODE: --</div>
     </div>
 
-    <div class="card">
-      <h2>Kontrol Pompa</h2>
-      <div>Status Pompa: <div class="value" id="pumpStatus">--</div></div>
-      <div>Mode: <div class="value" id="pumpMode">--</div></div>
-      <div class="pump-controls">
-        <button id="manualBtn" class="manual inactive" onclick="toggleManual()">Manual ON/OFF</button>
-        <button class="auto" onclick="setPump('AUTO')">AUTO</button>
+    <div class="grid" id="mainGrid">
+      <div class="card">
+        <div class="label">🌡 Suhu Udara</div>
+        <div id="airTemp" class="value">—</div>
+        <div class="label">💧 Kelembapan Udara</div>
+        <div id="airHum" class="value">—</div>
       </div>
-      <hr>
-      <h3>⏰ Pengaturan Timer</h3>
-      <label>Waktu Mulai:</label><br>
-      <input type="datetime-local" id="startTime"><br><br>
-      <label>Durasi (menit):</label><br>
-      <input type="number" id="duration" min="1" value="10"><br><br>
-      <button id="timerBtn" class="timer inactive" onclick="toggleTimer()">Timer ON/OFF</button>
+
+      <div class="card">
+        <div class="label">⚗️ pH Tanah</div>
+        <div id="ph" class="value">—</div>
+        <div class="label">☀️ Cahaya</div>
+        <div id="lux" class="value">—</div>
+        <div class="label">🌫 CO₂ (eCO₂)</div>
+        <div id="co2" class="value">—</div>
+      </div>
+
+      <div id="moistureCards"></div>
+      <div id="soilCards"></div>
+
+      <div class="card">
+        <div class="label">🚰 Pompa</div>
+        <div id="pumpStatus" class="value">—</div>
+        <div style="margin-top:12px" class="controls">
+          <button class="on" onclick="controlPump('ON')">ON</button>
+          <button class="off" onclick="controlPump('OFF')">OFF</button>
+          <button class="auto" onclick="controlPump('AUTO')">AUTO</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="label">⏰ Timer Pompa</div>
+        <div id="timerStatus" class="small mono">Belum ada</div>
+        <div style="margin-top:12px" class="controls">
+          <label class="small">Hari</label>
+          <select id="timerDay">
+            <option value="0">Minggu</option>
+            <option value="1">Senin</option>
+            <option value="2">Selasa</option>
+            <option value="3">Rabu</option>
+            <option value="4">Kamis</option>
+            <option value="5">Jumat</option>
+            <option value="6">Sabtu</option>
+          </select><br>
+          <label class="small">Jam</label>
+          <input id="timerHour" type="number" min="0" max="23" value="7" style="width:60px">
+          <label class="small">Menit</label>
+          <input id="timerMinute" type="number" min="0" max="59" value="30" style="width:60px"><br>
+          <button class="on" onclick="setTimer(true)">SET</button>
+          <button class="off" onclick="setTimer(false)">CLEAR</button>
+        </div>
+      </div>
     </div>
+
+    <div class="card" style="margin-top:16px">
+      <div class="label">📡 Last message</div>
+      <div id="lastMsg" class="small mono">no messages yet</div>
+    </div>
+
+    <footer>ALAM MAN 1 MEDAN © 2025 </footer>
   </div>
 
-  <!-- Data per Tanaman -->
-  <div class="grid grid-2">
-    <div class="card" id="plant1">
-      <h2>Tanaman 1</h2>
-      <div class="sensor">Kelembapan Tanah: <div class="value moisture">-- %</div></div>
-      <div class="sensor">Suhu Tanah: <div class="value temp">-- °C</div></div>
-    </div>
-    <div class="card" id="plant2">
-      <h2>Tanaman 2</h2>
-      <div class="sensor">Kelembapan Tanah: <div class="value moisture">-- %</div></div>
-      <div class="sensor">Suhu Tanah: <div class="value temp">-- °C</div></div>
-    </div>
-    <div class="card" id="plant3">
-      <h2>Tanaman 3</h2>
-      <div class="sensor">Kelembapan Tanah: <div class="value moisture">-- %</div></div>
-      <div class="sensor">Suhu Tanah: <div class="value temp">-- °C</div></div>
-    </div>
-    <div class="card" id="plant4">
-      <h2>Tanaman 4</h2>
-      <div class="sensor">Kelembapan Tanah: <div class="value moisture">-- %</div></div>
-      <div class="sensor">Suhu Tanah: <div class="value temp">-- °C</div></div>
-    </div>
-  </div>
+<script>
+/* ==== MQTT SCRIPT ==== */
+const TOPIC_TELE="alamproject/plantmonitor/telemetry";
+const TOPIC_PUMP_SET="alamproject/plantmonitor/pump/set";
+const TOPIC_PUMP_STATUS="alamproject/plantmonitor/pump/status";
+const TOPIC_MODE="alamproject/plantmonitor/mode";
+const TOPIC_TIMER_SET="alamproject/plantmonitor/timer/set";
+const TOPIC_TIMER_STATUS="alamproject/plantmonitor/timer/status";
 
-  <footer>
-    ALAM MAN 1 MEDAN © 2025 
-  </footer>
+const brokerUrl="wss://broker.hivemq.com:8884/mqtt"; 
+let clientId="webclient_"+Math.random().toString(16).slice(2);
 
-  <script>
-    const broker = 'wss://broker.hivemq.com:8000/mqtt';
-    const clientId = 'webclient_' + Math.floor(Math.random()*1000);
-    const plantNode = 'plantnode01';
+let client=mqtt.connect(brokerUrl,{clientId,clean:true,connectTimeout:5000,reconnectPeriod:3000});
 
-    const client = mqtt.connect(broker, { clientId: clientId });
+client.on('connect',()=>{
+  setConn(true);
+  client.subscribe([TOPIC_TELE,TOPIC_PUMP_STATUS,TOPIC_MODE,TOPIC_TIMER_STATUS]);
+});
+client.on('reconnect',()=>setConn(false,"RECONNECTING"));
+client.on('close',()=>setConn(false));
+client.on('message',(topic,message)=>{
+  const msg=message.toString();
+  document.getElementById('lastMsg').textContent=`[${topic}] ${msg}`;
+  try{
+    if(topic===TOPIC_TELE)handleTelemetry(JSON.parse(msg));
+    else if(topic===TOPIC_PUMP_STATUS)handlePumpStatus(JSON.parse(msg));
+    else if(topic===TOPIC_MODE)handleMode(msg);
+    else if(topic===TOPIC_TIMER_STATUS)handleTimerStatus(JSON.parse(msg));
+  }catch(e){console.warn(e)}
+});
 
-    let manualState = false;
-    let timerActive = false;
+function setConn(ok,txt){
+  const el=document.getElementById('connBadge');
+  if(ok){el.textContent="MQTT: CONNECTED";el.className="badge ok"}
+  else {el.textContent=txt||"MQTT: DISCONNECTED";el.className="badge warn"}
+}
+function safe(v,p,u){if(v==null)return"—";if(typeof v==="number"){if(isNaN(v)||v==-1)return"—";return (p?v.toFixed(p):v)+(u?(" "+u):"")}return v}
 
-    client.on('connect', function() {
-      console.log('Connected to MQTT broker');
-      client.subscribe(`fizproject/plantmonitor/${plantNode}/telemetry`);
-      client.subscribe(`fizproject/plantmonitor/${plantNode}/pump/status`);
-      client.subscribe(`fizproject/plantmonitor/${plantNode}/mode`);
+function handleTelemetry(d){
+  document.getElementById('airTemp').textContent=safe(d.airTemp,1,"°C");
+  document.getElementById('airHum').textContent=safe(d.airHum,1,"%");
+  document.getElementById('ph').textContent=safe(d.ph,2);
+  document.getElementById('lux').textContent=safe(d.lux,1,"lux");
+  document.getElementById('co2').textContent=safe(d.co2_eCO2,0,"ppm");
+
+  const mWrap=document.getElementById('moistureCards');
+  mWrap.innerHTML="";
+  if(Array.isArray(d.moisture)){
+    d.moisture.forEach((v,i)=>{
+      mWrap.innerHTML+=`
+        <div class="card">
+          <div class="label">💧 Kelembapan Tanah ${i+1}</div>
+          <div class="value">${safe(v,1,"%")}</div>
+        </div>`;
     });
+  }
 
-    client.on('message', function(topic, message) {
-      const msg = message.toString();
-      if(topic.endsWith('telemetry')) {
-        const data = JSON.parse(msg);
-        document.getElementById('airTemp').innerText = data.airTemp + " °C";
-        document.getElementById('airHum').innerText = data.airHum + " %";
-        document.getElementById('ph').innerText = data.ph;
-        document.getElementById('lux').innerText = data.lux + " lux";
-        document.getElementById('co2').innerText = data.co2_eCO2 + " ppm";
-
-        document.getElementById('pumpStatus').innerText = data.pumpState ? 'ON' : 'OFF';
-        document.getElementById('pumpMode').innerText = data.mode;
-
-        for (let i=0;i<4;i++) {
-          let plantDiv = document.getElementById('plant'+(i+1));
-          plantDiv.querySelector('.moisture').innerText = data.moisture[i] + " %";
-          plantDiv.querySelector('.temp').innerText = data.soilTemps[i] + " °C";
-        }
-      } else if(topic.endsWith('pump/status')) {
-        const status = JSON.parse(msg);
-        document.getElementById('pumpStatus').innerText = status.pumpState ? 'ON' : 'OFF';
-        document.getElementById('pumpMode').innerText = status.mode;
-      } else if(topic.endsWith('mode')) {
-        document.getElementById('pumpMode').innerText = msg;
-      }
+  const sWrap=document.getElementById('soilCards');
+  sWrap.innerHTML="";
+  if(Array.isArray(d.soilTemps)){
+    d.soilTemps.forEach((v,i)=>{
+      sWrap.innerHTML+=`
+        <div class="card">
+          <div class="label">🌡 Suhu Tanah ${i+1}</div>
+          <div class="value">${safe(v,1,"°C")}</div>
+        </div>`;
     });
+  }
 
-    function toggleManual() {
-      manualState = !manualState;
-      document.getElementById("manualBtn").className = manualState ? "manual active" : "manual inactive";
-      client.publish(`fizproject/plantmonitor/${plantNode}/pump/set`, manualState ? "ON" : "OFF");
-      showNotification("Pompa " + (manualState ? "dinyalakan" : "dimatikan"));
-    }
+  document.getElementById('pumpStatus').textContent=d.pumpState?"ON":"OFF";
+  document.getElementById('pumpBadge').textContent="POMPA: "+(d.pumpState?"ON":"OFF");
+  document.getElementById('pumpBadge').className="badge "+(d.pumpState?"ok":"warn");
+  document.getElementById('modeBadge').textContent="MODE: "+(d.mode||"--");
+  document.getElementById('modeBadge').className="badge "+((d.mode&&d.mode.toUpperCase()==="AUTO")?"ok":"info");
+}
 
-    function setPump(command) {
-      client.publish(`fizproject/plantmonitor/${plantNode}/pump/set`, command);
-      showNotification("Mode pompa diubah ke " + command);
-    }
-
-    function toggleTimer() {
-      timerActive = !timerActive;
-      document.getElementById("timerBtn").className = timerActive ? "timer active" : "timer inactive";
-
-      if(timerActive) {
-        const start = new Date(document.getElementById("startTime").value).getTime();
-        const duration = parseInt(document.getElementById("duration").value) * 60 * 1000;
-        if(isNaN(start) || isNaN(duration)) {
-          alert("Isi waktu mulai dan durasi dengan benar!");
-          return;
-        }
-        client.publish(`fizproject/plantmonitor/${plantNode}/pump/timer`, JSON.stringify({start:start, duration:duration}));
-        showNotification("Timer pompa dijadwalkan");
-      } else {
-        client.publish(`fizproject/plantmonitor/${plantNode}/pump/timer`, "CANCEL");
-        showNotification("Timer pompa dibatalkan");
-      }
-    }
-
-    function showNotification(message) {
-      if (Notification.permission === "granted") {
-        new Notification("🌱 IoT Tanaman", { body: message });
-      }
-    }
-    if (Notification.permission !== "granted") {
-      Notification.requestPermission();
-    }
-  </script>
+function handlePumpStatus(o){
+  const on=!!o.pumpState;
+  document.getElementById('pumpStatus').textContent=on?"ON":"OFF";
+  document.getElementById('pumpBadge').textContent="POMPA: "+(on?"ON":"OFF");
+  document.getElementById('pumpBadge').className="badge "+(on?"ok":"warn");
+}
+function handleMode(m){
+  document.getElementById('modeBadge').textContent="MODE: "+m;
+  document.getElementById('modeBadge').className="badge "+((m&&m.toUpperCase()=="AUTO")?"ok":"info");
+}
+function handleTimerStatus(o){
+  let txt = o.enabled 
+    ? `ON → Hari ${["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"][o.day]}, ${o.hour}:${String(o.minute).padStart(2,"0")}`
+    : "OFF";
+  document.getElementById('timerStatus').textContent=txt;
+}
+function controlPump(cmd){
+  if(!client||!client.connected)return alert("Belum terhubung ke MQTT broker");
+  client.publish(TOPIC_PUMP_SET,cmd);
+  document.getElementById('lastMsg').textContent=`> Sent control ${cmd}`;
+}
+function setTimer(enable){
+  if(!client||!client.connected)return alert("Belum terhubung ke MQTT broker");
+  const d=parseInt(document.getElementById('timerDay').value);
+  const h=parseInt(document.getElementById('timerHour').value);
+  const m=parseInt(document.getElementById('timerMinute').value);
+  const payload=JSON.stringify({enabled:enable,day:d,hour:h,minute:m});
+  client.publish(TOPIC_TIMER_SET,payload);
+  document.getElementById('lastMsg').textContent=`> Sent timer ${payload}`;
+}
+</script>
 </body>
 </html>
-
